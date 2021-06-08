@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup as soup
 
-# load slimyness
 data = pd.read_csv('C:/Users/Darren Cook/Documents/PhD Research/chat_logs/notes/chatlog_url.csv')
 
 
