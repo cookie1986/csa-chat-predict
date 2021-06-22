@@ -1,5 +1,7 @@
 --- All the csv files in the Data folder will later be deleted, so make copies ---
 
+## requirements pandas, plotly, os, glob ##
+
 -Insert all the .csv that are to be analysed in the Data folder
 
 -Run Code
