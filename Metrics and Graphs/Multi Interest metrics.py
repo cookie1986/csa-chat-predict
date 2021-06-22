@@ -5,12 +5,11 @@ Created on Mon Apr 26 21:38:39 2021
 @author: panay
 """
 
-import warnings
-warnings.filterwarnings('ignore')
-
-import numpy as np
 import pandas as pd
 import plotly.express as px
+import os
+from glob import glob
+
 pd.options.plotting.backend = "plotly"
 
 def Separate(df):
@@ -196,9 +195,6 @@ def plotting(df,name,Typeplot):
         
 
 if __name__ == '__main__':
-    import pandas as pd
-    import os
-    from glob import glob
     PATH = "./Data"
     EXT = "*.csv"
     
