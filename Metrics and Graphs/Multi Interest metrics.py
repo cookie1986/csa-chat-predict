@@ -261,7 +261,7 @@ if __name__ == '__main__':
         
         if do_time:
             dfTime = Time(df,name) 
-        dfTime.to_csv('./'+file_name+'/'+base +'_Time.csv',index=False)    
+            dfTime.to_csv('./'+file_name+'/'+base +'_Time.csv',index=False)    
         
    ###### delete the csvs that was analysed ###### 
         os.remove(csv_file)
