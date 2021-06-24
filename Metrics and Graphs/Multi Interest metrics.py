@@ -207,7 +207,8 @@ if __name__ == '__main__':
     
     for csv_file in all_csv_files:
         df = pd.read_csv(csv_file) #, parse_dates=['Time'])
-        
+        df=df.dropna()
+        df=df.reset_index(drop=True)
         #consider pan-12 and perverted justice
         if df.columns[0] == 'speaker_role':
             #columns to use
@@ -220,6 +221,8 @@ if __name__ == '__main__':
             columns=[speaker,message,'time']
             #read the csv with the time column
             df = pd.read_csv(csv_file, usecols=columns)
+            df=df.dropna()
+            df=df.reset_index(drop=True)
             do_time=True
         
             
