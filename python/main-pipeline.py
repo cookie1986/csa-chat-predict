@@ -55,11 +55,29 @@ bow_1 = SubCondProb(data)
 
 
 
+
+
+
 #### Chat Type Classification
 
+## load classifiers
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
+
+
+RandomForest = RandomForestClassifier(random_state=123, n_jobs=-1)
+SupportVec = SVC(random_state=123)
+NaiveBayes = GaussianNB()
+LogRegr = LogisticRegression(random_state=123, n_jobs=-1)
+
+models = [RandomForest, SupportVec, NaiveBayes, LogRegr]
+
+
+## feature pre-processing
 # add labels to feature vector
 chat_type = data.groupby(['chat_id']).max(['speaker_type'])
-
 chat_type['speaker_type'].value_counts()
 
 
@@ -67,7 +85,7 @@ chat_type['speaker_type'].value_counts()
 features = pd.merge(bow_1, chat_type, left_index=True, right_index=True) # add other models here
 
 
-# # export to CSV
+# # export to CSV (if necessary)
 # features.to_csv('C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/models/model1_features.csv')
 
 
@@ -76,45 +94,32 @@ y = np.array(features['speaker_type'])
 
 # set predictors
 X = features.drop(['speaker_type','msg_id'], axis=1).reset_index(drop=True)
+
+# get feature names
 X_names = X.columns
-X = np.array(X)
 
-# prep cls task
-from sklearn.ensemble import RandomForestClassifier
-
-clsfr = RandomForestClassifier(n_estimators=100,
-                               max_depth=None,
-                               min_samples_split=2,
-                               min_samples_leaf=1,
-                               min_weight_fraction_leaf=0.0,
-                               max_features='auto',
-                               max_leaf_nodes=None,
-                               min_impurity_decrease=0.0,
-                               min_impurity_split=None,
-                               bootstrap=True,
-                               oob_score=False,
-                               n_jobs=-1,
-                               random_state=123,
-                               warm_start=False,
-                               class_weight=None,
-                               ccp_alpha=0.0,
-                               max_samples=None)
+# convert to array and scale (not needed for random forest but shouldn't hurt)
+from sklearn.preprocessing import StandardScaler
+X = np.array(X) # for random forest
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X) # for SVC, NB, LR
 
 
-# prep Kfold
+# prep cross validation and feature importance
 from sklearn.model_selection import StratifiedKFold
+from sklearn.inspection import permutation_importance
 
 cross_val = StratifiedKFold(n_splits=10,
                             shuffle=False,
                             random_state=None)
 
 
-# store preds over all folds
+# store preds over all models and folds
 all_preds = []
-# store classification reports over all folds
-reports = []
+# store performance metrics 
+metrics = []
 # store importance scores over all folds
-importances = pd.DataFrame()
+rf_importances = pd.DataFrame()
 
 # store performance metrics per fold
 from sklearn.metrics import confusion_matrix, classification_report
@@ -126,37 +131,79 @@ fold_num = 1
 # run model
 for train_index, test_index in cross_val.split(X, y):
     
-    ## Fitting Random Forest
+    ## Splitting dataset
     
-    # set train and test regions
+    # set train (scaled and unscaled) and test regions
     X_train, X_test = X[train_index], X[test_index]
+    Xsc_train, Xsc_test = X_scaled[train_index], X_scaled[test_index]
+    
     y_train, y_test = y[train_index], y[test_index]
     
-    # fit model
-    clsfr.fit(X_train, y_train)
     
-    # get predictions
-    y_preds = clsfr.predict(X_test)
-    all_preds.append([y_test, y_preds])
+    ## Scaled model fitting 
+    
+    # fit scaled models
+    for model in models:
+        
+        # set model name
+        if str(model).startswith('S'):
+            model_name = 'svm'
+        elif str(model).startswith('G'):
+            model_name = 'nb'
+        elif str(model).startswith('R'):
+            model_name = 'rf'
+        else:
+            model_name = 'lr'
+        
+        # fit
+        if model_name == 'rf':
+            model.fit(X_train, y_train)
+            
+            importance = permutation_importance(model, 
+                                                X_train, 
+                                                y_train, 
+                                                scoring='recall')
+            importance_mean = importance.importances_mean
+            
+            
+            # predict
+            y_preds = model.predict(X_test)
+        
+        else:
+            model.fit(Xsc_train, y_train)
+            
+            # predict
+            y_preds = model.predict(Xsc_test)
+
+        # add predictions to main predictions list
+        all_preds.append([model_name, y_test, y_preds])
+        
+        # measure performance predicting predator chats
+        conf = confusion_matrix(y_test, y_preds)
+        
+        precision = conf[1][1]/(conf[0][1] + conf[1][1])
+        recall = conf[1][1]/(conf[1][0] + conf[1][1])
+        f1 = 2*precision*recall / (precision+recall)
+        
+        metrics.append([model_name, precision, recall, f1])
+
     
     
     
-    ##  Feature Importance
+    ##  Feature Importance (random forest only)
     
     # # get feature importances
-    # feat_imp = clsfr.feature_importances_
+    # feat_imp = RandomForest.feature_importances_
     
     # # SD of feature importances
-    # std = np.std([tree.feature_importances_ for tree in clsfr.estimators_],
-    #          axis=0)
+    # std = np.std([tree.feature_importances_ for tree in RandomForest.estimators_],
+    #           axis=0)
     
     # # get indices of top 10 features
     # indices = np.argsort(feat_imp)
 
-
-    
     # # get feature importance scores
-    # feat_impDF = pd.DataFrame(clsfr.feature_importances_, 
+    # feat_impDF = pd.DataFrame(RandomForest.feature_importances_, 
     #                         index=X_names,  
     #                         columns=['importance']).sort_values('importance', 
     #                         ascending=False).reset_index(drop=False)
@@ -164,6 +211,7 @@ for train_index, test_index in cross_val.split(X, y):
                                                                 
     # # add to main importance DF
     # importances = importances.append(feat_impDF)
+
 
     # # plot the feature importances of the forest
     # plt.figure()
@@ -179,23 +227,17 @@ for train_index, test_index in cross_val.split(X, y):
     # plt.show()                                           
     
     
-    
-    
-    
-    
-    
-    
-    ## Prediction Performance
-    
-    # performance
-    output = confusion_matrix(y_test, y_preds)
-    conf_metrices.append(output)
-    
-    # classification report
-    target_names = ['Non-Pred','Pred']
-    report = classification_report(y_test, y_preds, target_names=target_names)
-    reports.append(report)
-    
-    
-    
+
+
     fold_num +=1
+    
+
+
+
+# change working dir
+path = 'C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/'
+os.chdir(path)
+
+# export metrics values
+metricsDF = pd.DataFrame(metrics, columns=['model','Precision','Recall','F1'])
+# metricsDF.to_csv('models/model1_metrics.csv')
