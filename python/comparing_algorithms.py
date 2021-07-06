@@ -48,7 +48,7 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 recall_posthoc = pairwise_tukeyhsd(endog=recall['Recall'],
                           groups=recall['model'],
-                          alpha=0.05)
+                          alpha=0.01)
 
 print(recall_posthoc)
 
@@ -70,6 +70,6 @@ print(fvalue, pvalue)
 # run post-hocs (Tukey HSD)
 f1_posthoc = pairwise_tukeyhsd(endog=f1['F1'],
                           groups=f1['model'],
-                          alpha=0.05)
+                          alpha=0.01)
 
 print(f1_posthoc)

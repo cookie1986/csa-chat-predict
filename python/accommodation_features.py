@@ -8,7 +8,8 @@ Models:
      
 '''
 
-def SubCondProb(dataframe):
+def SubCondProb(dataframe, 
+                feature_sel = True):
     
     import numpy as np
     import pandas as pd
@@ -222,10 +223,13 @@ def SubCondProb(dataframe):
     
     # format scp features as a matrix
     scp_features = pd.DataFrame.from_dict(scp_vals_global, orient='index').fillna(0)
-            
-    # remove features appearing in less than 10% of corpus
-    min_nonZero = int(len(scp_features)*0.1)
-    scp_features = scp_features.loc[:, (scp_features.replace(0, np.nan).notnull().sum(axis=0) >= min_nonZero)]
+    
+
+    # perform simple feature selection
+    if feature_sel == True:
+        # remove features appearing in less than 10% of corpus
+        min_nonZero = int(len(scp_features)*0.1)
+        scp_features = scp_features.loc[:, (scp_features.replace(0, np.nan).notnull().sum(axis=0) >= min_nonZero)]
     
 
     return scp_features
