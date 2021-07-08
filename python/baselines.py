@@ -36,12 +36,15 @@ def baseline_bow(dataframe):
         # replace numbers with word alternatives
         msg_clean = [int(i) if i.isdigit() else i for i in msg_clean.split()]
         
-        msg_clean = ' '.join([num2words(i) if isinstance(i, int) 
-                      else i for i in msg_clean]).rstrip()
+        msg_clean = [num2words(i) if isinstance(i, int) 
+                      else i for i in msg_clean]
+        
+        # remove tokens longer than 10 chars
+        msg_clean = [x for x in msg_clean if len(x) <10]
         
         # remove common nonlinguistic tokens
         msg_clean = ' '.join(
-            [x for x in msg_clean.split() if "www" not in x and "http" not in x])
+            [x for x in msg_clean if "www" not in x and "http" not in x]).rstrip()
         
         return msg_clean
     
@@ -57,11 +60,11 @@ def baseline_bow(dataframe):
             chat_id = chat[0]
             chatlog = chat[1].reset_index()
             
-            # record chat type (1=pred, 0=np)
-            if sum(chatlog['speaker_type'])>0:
-                chat_type = 1
-            else:
-                chat_type = 0
+            # # record chat type (1=pred, 0=np)
+            # if sum(chatlog['speaker_type'])>0:
+            #     chat_type = 1
+            # else:
+            #     chat_type = 0
             
             # fill nans
             chatlog['content'] = chatlog['content'].fillna('')

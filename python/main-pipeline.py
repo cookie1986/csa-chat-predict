@@ -41,12 +41,12 @@ resampled = [id_.rstrip() for id_ in resampled]
 # pre-process xml data
 path = 'C:/Users/Darren Cook/Documents/PhD Research/csa_chats/scripts/csa-chat-predict/python'
 os.chdir(path)
-from pan12_preprocessing import preprocess_xml
+from pan12_preprocessing import preprocess_xml, remove_n_msgs
 
 data = preprocess_xml(xml_data, predators, resampled)
 
-
-
+# trim messages from beginning of chat
+data = remove_n_msgs(data, n=10, resample=True)
 
 
 
@@ -77,7 +77,7 @@ bow_scp = bow_scp.set_axis(bow_scp_cols, axis=1)
 
 
 
-# Format final dataframe
+# Format final feature set
 features = pd.merge(bow_baseline, 
                     bow_scp, 
                     left_index=True, 
@@ -100,13 +100,12 @@ NaiveBayes = GaussianNB()
 LogRegr = LogisticRegression(random_state=123, n_jobs=-1)
 
 # combine
-# models = [RandomForest, SupportVec, NaiveBayes, LogRegr]
-models = [RandomForest]
+models = [RandomForest, SupportVec, NaiveBayes, LogRegr]
 
 
 ## feature pre-processing
 # add target labels to feature vector
-chat_type = data.groupby(['chat_id']).max(['speaker_type'])
+chat_type = data.groupby(['chat_id']).max(['speaker_type']).drop(['msg_id'], axis=1)
 chat_type['speaker_type'].value_counts()
 
 
@@ -116,15 +115,15 @@ features = pd.merge(features, chat_type,
                     right_index=True)
 
 
-# # export to CSV (if necessary)
-# features.to_csv('C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/models/model1_features.csv')
+# export to CSV (if necessary)
+# features.to_csv('C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/models/baseline_features.csv')
 
 
 # set target
 y = np.array(features['speaker_type'])
 
 # set predictors
-X = features.drop(['speaker_type','msg_id'], axis=1).reset_index(drop=True)
+X = features.drop(['speaker_type'], axis=1).reset_index(drop=True)
 
 # get feature names
 X_names = X.columns
@@ -157,9 +156,6 @@ metrics = []
 # store performance metrics per fold
 from sklearn.metrics import confusion_matrix
 conf_metrices = []
-
-# fold counter
-fold_num = 1
 
 # run model
 for train_index, test_index in cross_val.split(X, y):
@@ -205,11 +201,6 @@ for train_index, test_index in cross_val.split(X, y):
         
         # add output to main list
         metrics.append([model_name, precision, recall, f1])
-    
-
-
-    fold_num +=1
-    
 
 
 
@@ -217,9 +208,14 @@ for train_index, test_index in cross_val.split(X, y):
 path = 'C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/'
 os.chdir(path)
 
-# export metrics values
+# convert to DF
 metricsDF = pd.DataFrame(metrics, columns=['model','Precision','Recall','F1'])
-metricsDF.to_csv('models/model1_metrics.csv')
+
+# get means over all folds
+metrics_meanDF = metricsDF.groupby('model').mean()
+
+# export
+# metricsDF.to_csv('models/baseline_metrics.csv')
 
 
 
@@ -233,7 +229,7 @@ from collections import defaultdict
 from sklearn.inspection import permutation_importance
 
 # models to run feature importance analysis on
-importance_models = [RandomForest, NaiveBayes]
+importance_models = [LogRegr, NaiveBayes]
 
 # empty DF to store scores
 importance_global = pd.DataFrame()
@@ -257,9 +253,9 @@ for train_index, test_index in cross_val.split(X, y):
     for model in importance_models:
         
         # set model name
-        if str(model).startswith('R'):
-            model_name = 'rf'
-        elif str(model).startswith('G'):
+        if str(model).startswith('L'):
+            model_name = 'lr'
+        else:
             model_name = 'nb'
         
         # hierarchical clustering between features
@@ -339,7 +335,3 @@ for train_index, test_index in cross_val.split(X, y):
 
 # average feature importance scores 
 importance_feature_mean = importance_global.groupby(['model','feature']).mean()
-
-# export feature importance scores
-importance_global.to_csv(
-    'predicting_predators/models/model1_feature_importance.csv', index=False)

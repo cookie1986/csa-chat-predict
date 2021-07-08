@@ -113,3 +113,37 @@ def preprocess_xml(xml_file,
         
         
     return main_chatDF
+
+
+def remove_n_msgs(dataframe, 
+                  n=10, 
+                  resample=True,
+                  min_resample_len=25):
+    
+    '''
+    remove first messages from the beginning of a chat
+    
+    dataframe: pandas DF of a chat corpus, where rows are messages
+    n: the number of messages to trim from beginning of chat
+    resample: bool, whether to remove short chats from corpus
+    min_sample_len: if resample=True, the length (in msgs) of shortest chat
+    
+    returns: dataframe
+    '''
+    
+    # DF to store chats
+    chatDF = pd.DataFrame()
+    
+    for chat in dataframe.groupby(['chat_id']):
+        
+        # drop first n messages from chat
+        chatlog = chat[1].iloc[n:]
+        
+        # remove chats shorter than minimum length
+        if len(chatlog)<min_resample_len:
+            continue
+        else:
+            chatDF = chatDF.append(chatlog)
+
+        
+    return chatDF

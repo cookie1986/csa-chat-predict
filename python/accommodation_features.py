@@ -37,11 +37,18 @@ def SubCondProb(dataframe,
         # replace numbers with word alternatives
         msg_clean = [int(i) if i.isdigit() else i for i in msg_clean.split()]
         
-        msg_clean = ' '.join([num2words(i) if isinstance(i, int) 
-                      else i for i in msg_clean]).rstrip()
+        msg_clean = [num2words(i) if isinstance(i, int) 
+                      else i for i in msg_clean]
+        
+        # remove tokens longer than 10 chars
+        msg_clean = [x for x in msg_clean if len(x) <10]
+        
+        # remove common nonlinguistic tokens
+        msg_clean = ' '.join(
+            [x for x in msg_clean if "www" not in x and "http" not in x]).rstrip()
         
         return msg_clean
-    
+        
     
     
     def ngramize(msg, ngram_len):

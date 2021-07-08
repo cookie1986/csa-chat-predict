@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #### load data
-metricsDF = pd.read_csv('C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/models/model1_metrics.csv')
+metricsDF = pd.read_csv('C:/Users/Darren Cook/Documents/PhD Research/csa_chats/predicting_predators/models/model1b_metrics.csv')
 metricsDF = metricsDF.iloc[: , 1:]
 
 
@@ -16,6 +16,10 @@ metricsDF = metricsDF.iloc[: , 1:]
 # compare performance of algorithms
 metricsDF_mean = metricsDF.groupby('model').mean()
 
+# # add baseline averages
+# baseline = pd.Series(data={'Precision':0.95,'Recall':0.86,'F1':0.91}, name='bs')
+# metricsDF_mean = metricsDF_mean.append(baseline, ignore_index=False)
+
 # boxplot
 metricsDF.boxplot( 
                   by='model',
@@ -23,7 +27,7 @@ metricsDF.boxplot(
                   figsize=(8,8),
                   fontsize=10)
 plt.suptitle('')
-# plt.savefig("plots/algorithm_comparisonbox.png", bbox_inches='tight')
+plt.savefig("plots/algorithm_comparisonbox_model1b.png", bbox_inches='tight')
 plt.show()
 
 
